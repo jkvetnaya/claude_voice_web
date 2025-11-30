@@ -257,6 +257,87 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/chat/stream', methods=['POST'])
+def chat_stream():
+    """
+    Send a message to Claude and stream the response.
+    
+    Expects JSON with:
+        - message: user's message text
+        - session_id: unique session identifier (optional)
+    
+    Returns:
+        - Server-sent events with streamed response chunks
+    """
+    from flask import Response, stream_with_context
+    
+    data = request.get_json()
+    
+    if 'message' not in data:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    message = data['message']
+    session_id = data.get('session_id', 'default')
+    
+    # Get or create conversation history for this session
+    if session_id not in conversation_histories:
+        conversation_histories[session_id] = []
+    
+    history = conversation_histories[session_id]
+    
+    # Add user message to history
+    history.append({
+        'role': 'user',
+        'content': message
+    })
+    
+    def generate():
+        try:
+            client = get_claude_client()
+            full_response = ""
+            
+            # Stream the response
+            with client.messages.stream(
+                model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+                max_tokens=2048,
+                system="You are a helpful voice assistant. Keep your responses concise and conversational since they will be displayed to a user who just spoke to you. Be friendly, natural, and helpful. Use markdown formatting when appropriate for readability.",
+                messages=history
+            ) as stream:
+                for text in stream.text_stream:
+                    full_response += text
+                    # Send each chunk as a server-sent event
+                    yield f"data: {json.dumps({'chunk': text})}\n\n"
+            
+            # Add assistant response to history
+            history.append({
+                'role': 'assistant',
+                'content': full_response
+            })
+            
+            # Limit history size
+            if len(history) > MAX_HISTORY_MESSAGES:
+                conversation_histories[session_id] = history[-MAX_HISTORY_MESSAGES:]
+            
+            # Save to disk
+            save_conversation_history()
+            
+            # Send done signal
+            yield f"data: {json.dumps({'done': True})}\n\n"
+            
+        except Exception as e:
+            print(f"Stream error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
+
+
 @app.route('/api/clear', methods=['POST'])
 def clear_history():
     """Clear conversation history for a session."""

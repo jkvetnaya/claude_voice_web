@@ -9,21 +9,21 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0a0b;
-            --bg-secondary: #141416;
-            --bg-tertiary: #1c1c1f;
-            --bg-elevated: #242428;
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            --text-muted: #71717a;
-            --accent: #d4a574;
-            --accent-glow: rgba(212, 165, 116, 0.3);
-            --accent-soft: rgba(212, 165, 116, 0.1);
-            --recording: #ef4444;
-            --recording-glow: rgba(239, 68, 68, 0.4);
-            --success: #22c55e;
-            --border: rgba(255, 255, 255, 0.06);
-            --border-hover: rgba(255, 255, 255, 0.1);
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --bg-tertiary: #ebebed;
+            --bg-elevated: #e0e0e3;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #888888;
+            --accent: #c47f3c;
+            --accent-glow: rgba(196, 127, 60, 0.3);
+            --accent-soft: rgba(196, 127, 60, 0.1);
+            --recording: #dc2626;
+            --recording-glow: rgba(220, 38, 38, 0.4);
+            --success: #16a34a;
+            --border: rgba(0, 0, 0, 0.1);
+            --border-hover: rgba(0, 0, 0, 0.2);
         }
 
         * {
@@ -51,8 +51,8 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 165, 116, 0.08), transparent),
-                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(212, 165, 116, 0.04), transparent);
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(196, 127, 60, 0.05), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(196, 127, 60, 0.03), transparent);
             pointer-events: none;
             z-index: 0;
         }
@@ -308,7 +308,7 @@
             scroll-behavior: smooth;
             /* Force scrollbar visibility */
             scrollbar-width: auto;
-            scrollbar-color: #d4a574 #1c1c1f;
+            scrollbar-color: var(--accent) var(--bg-secondary);
         }
 
         /* Webkit browsers (Chrome, Safari, Edge) */
@@ -318,23 +318,23 @@
         }
 
         .chat-container::-webkit-scrollbar-track {
-            background: #1c1c1f;
+            background: var(--bg-secondary);
             border-radius: 7px;
         }
 
         .chat-container::-webkit-scrollbar-thumb {
-            background: #d4a574;
+            background: var(--accent);
             border-radius: 7px;
-            border: 3px solid #1c1c1f;
+            border: 3px solid var(--bg-secondary);
             min-height: 50px;
         }
 
         .chat-container::-webkit-scrollbar-thumb:hover {
-            background: #e0b88a;
+            background: #a86830;
         }
 
         .chat-container::-webkit-scrollbar-corner {
-            background: #1c1c1f;
+            background: var(--bg-secondary);
         }
 
         /* Messages */
@@ -417,13 +417,13 @@
         .message-content code {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85em;
-            background: var(--bg-elevated);
+            background: var(--bg-tertiary);
             padding: 0.2em 0.4em;
             border-radius: 4px;
         }
 
         .message-content pre {
-            background: var(--bg-primary);
+            background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1rem;
@@ -614,7 +614,7 @@
             border-radius: 12px;
             border: none;
             background: var(--accent);
-            color: var(--bg-primary);
+            color: #ffffff;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -624,7 +624,7 @@
         }
 
         .send-btn:hover {
-            background: #e0b88a;
+            background: #a86830;
             transform: scale(1.05);
         }
 
@@ -877,21 +877,25 @@
             status.innerHTML = type ? `<span class="status-dot"></span>${text}` : text;
         }
         
-        // Add message to chat
-        function addMessage(content, isUser = false) {
+        // Format content with markdown-like styling
+        function formatContent(content) {
+            return content
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        }
+        
+        // Add message to chat (for user messages and loading previous messages)
+        function addMessage(content, isUser = false, scrollToIt = true) {
             // Hide empty state
             emptyState.style.display = 'none';
             
             const message = document.createElement('div');
             message.className = `message ${isUser ? 'user' : 'assistant'}`;
             
-            // Simple markdown-like formatting
-            let formattedContent = content
-                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>');
+            let formattedContent = formatContent(content);
             
             if (!formattedContent.startsWith('<p>')) {
                 formattedContent = '<p>' + formattedContent + '</p>';
@@ -906,7 +910,109 @@
             `;
             
             chatContainer.appendChild(message);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            // Only scroll for user messages
+            if (scrollToIt && isUser) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            return message;
+        }
+        
+        // Create an empty assistant message for streaming
+        function createStreamingMessage() {
+            emptyState.style.display = 'none';
+            
+            const message = document.createElement('div');
+            message.className = 'message assistant';
+            
+            message.innerHTML = `
+                <div class="message-header">
+                    <div class="message-avatar">✨</div>
+                    <span class="message-sender">Claude</span>
+                </div>
+                <div class="message-content"><p></p></div>
+            `;
+            
+            chatContainer.appendChild(message);
+            return message.querySelector('.message-content');
+        }
+        
+        // Update streaming message content
+        function updateStreamingMessage(contentEl, fullText) {
+            let formattedContent = formatContent(fullText);
+            
+            if (!formattedContent.startsWith('<p>')) {
+                formattedContent = '<p>' + formattedContent + '</p>';
+            }
+            
+            contentEl.innerHTML = formattedContent;
+        }
+        
+        // Send message with streaming response
+        async function sendMessageWithStream(text) {
+            // Add user message and scroll to it
+            addMessage(text, true, true);
+            
+            setStatus('Claude is thinking...', 'processing');
+            
+            // Create empty message for streaming
+            const contentEl = createStreamingMessage();
+            let fullResponse = '';
+            
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, session_id: sessionId })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Chat request failed');
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                
+                                if (data.chunk) {
+                                    fullResponse += data.chunk;
+                                    updateStreamingMessage(contentEl, fullResponse);
+                                }
+                                
+                                if (data.done) {
+                                    setStatus('Ready');
+                                }
+                                
+                                if (data.error) {
+                                    throw new Error(data.error);
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON lines
+                            }
+                        }
+                    }
+                }
+                
+                setStatus('Ready');
+                
+            } catch (err) {
+                console.error('Error sending message:', err);
+                setStatus('Ready');
+                showToast('Something went wrong. Please try again.', true);
+                contentEl.innerHTML = '<p><em>Error: Could not get response</em></p>';
+            }
         }
         
         // Animate waveform
@@ -1015,32 +1121,13 @@
                     const { text } = await transcribeResponse.json();
                     
                     if (!text || text.trim() === '') {
-                        setStatus('Ready to listen');
+                        setStatus('Ready');
                         showToast('Could not understand audio. Try speaking more clearly.', true);
                         return;
                     }
                     
-                    // Add user message
-                    addMessage(text, true);
-                    
-                    // Get Claude's response
-                    setStatus('Claude is thinking...', 'processing');
-                    
-                    const chatResponse = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text, session_id: sessionId })
-                    });
-                    
-                    if (!chatResponse.ok) {
-                        throw new Error('Chat request failed');
-                    }
-                    
-                    const { response } = await chatResponse.json();
-                    
-                    // Add Claude's response
-                    addMessage(response, false);
-                    setStatus('Ready to listen');
+                    // Use streaming for the response
+                    await sendMessageWithStream(text);
                 };
                 
             } catch (err) {
@@ -1060,33 +1147,8 @@
             textInput.value = '';
             textInput.style.height = 'auto';
             
-            // Add user message
-            addMessage(text, true);
-            
-            // Get Claude's response
-            setStatus('Claude is thinking...', 'processing');
-            
             try {
-                const chatResponse = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, session_id: sessionId })
-                });
-                
-                if (!chatResponse.ok) {
-                    throw new Error('Chat request failed');
-                }
-                
-                const { response } = await chatResponse.json();
-                
-                // Add Claude's response
-                addMessage(response, false);
-                setStatus('Ready');
-                
-            } catch (err) {
-                console.error('Error sending message:', err);
-                setStatus('Ready');
-                showToast('Something went wrong. Please try again.', true);
+                await sendMessageWithStream(text);
             } finally {
                 isSending = false;
                 sendBtn.disabled = false;
@@ -1237,8 +1299,10 @@
                 } else {
                     emptyState.style.display = 'none';
                     messages.forEach(msg => {
-                        addMessage(msg.content, msg.role === 'user');
+                        addMessage(msg.content, msg.role === 'user', false);
                     });
+                    // Scroll to top when loading a session
+                    chatContainer.scrollTop = 0;
                 }
                 
                 showToast('Conversation loaded');
@@ -1264,8 +1328,10 @@
                 if (data && data.messages && data.messages.length > 0) {
                     emptyState.style.display = 'none';
                     data.messages.forEach(msg => {
-                        addMessage(msg.content, msg.role === 'user');
+                        addMessage(msg.content, msg.role === 'user', false);
                     });
+                    // Scroll to top when restoring session
+                    chatContainer.scrollTop = 0;
                     showToast('Previous conversation restored');
                 }
             })
