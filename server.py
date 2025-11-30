@@ -5,11 +5,12 @@ Claude Voice Assistant - Web Server
 A Flask-based web server that provides a browser interface for talking to Claude.
 
 Requirements:
-    pip install flask flask-cors openai-whisper anthropic
+    pip install flask flask-cors openai-whisper anthropic python-dotenv
 
 Setup:
-    1. Set your Anthropic API key:
-       export ANTHROPIC_API_KEY="your-api-key-here"
+    1. Copy .env.example to .env and add your API key:
+       cp .env.example .env
+       # Edit .env and add your ANTHROPIC_API_KEY
     
     2. Run the server:
        python server.py
@@ -32,6 +33,10 @@ import base64
 import atexit
 from pathlib import Path
 from datetime import datetime
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
