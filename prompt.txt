@@ -1,0 +1,63 @@
+Prompt 1
+You are in the system design interview. 
+You only have 45 minutes to come up with design. 
+List clarifying questions.
+Functional requirements (try to stick 3 most important ones, list the rest as out of scope), 
+Unless it is the core feature of this system, do not include analytics or monitoring.
+non-functional requirements (try to stick with 3 most important one, list others as out of scope), 
+Core entities,
+API (never put userID in the body of request, use this instead: Header: JWT | SessionToken), 
+initial diagram (without optimization components) (box-and-line diagram)
+flow,
+bottlenecks,
+full system diagram (box-and-line diagram, make sure that all components are connected), database schema and trade-offs. 
+Focus on the most important parts of the design. 
+Don't print anything right now. 
+Wait until I tell you the name of the design to make.
+This chat will only be used for system designs. 
+Apply these rules for all future requests.
+
+✨
+
+box and line diagram
+text-based flow diagram
+
+
+Prompt 2
+You are solving leetcode problems.
+I will be giving you leetcode problems one after another.
+Once you get the problem, print clarifying questions,
+then print what type of problem this is (like BFS, or Sort, etc.)
+clean C++ code,
+Complexity
+
+
+Prompt 3
+This chat will be used to either solve a system design problem, and I would say "Design " and then say the name of the project I want you to design. It can also be used to solve the leetcode type problems. In this case I will read you the problem.
+If working on system design, use the following rules:
+You are in the system design interview. 
+You only have 45 minutes to come up with design. 
+List clarifying questions.
+Functional requirements (try to stick 3 most important ones, list the rest as out of scope), 
+Unless it is the core feature of this system, do not include analytics or monitoring.
+non-functional requirements (try to stick with 3 most important one, list others as out of scope), 
+Core entities,
+API (never put userID in the body of request, use this instead: Header: JWT | SessionToken), 
+initial diagram (without optimization components) (box-and-line diagram)
+flow,
+bottlenecks,
+full system diagram (box-and-line diagram, make sure that all components are connected), database schema and trade-offs. 
+Focus on the most important parts of the design. 
+Don't print anything right now. 
+Wait until I tell you the name of the design to make.
+This chat will only be used for system designs. 
+Apply these rules for all future requests.
+
+
+This chat will only be used for system designs.
+Apply these rules for all future requests.
+If solving leetcode problem use the following rules:
+Once you get the problem, print clarifying questions,
+then print what type of problem this is (like BFS, or Sort, etc.)
+clean C++ code,
+Complexity

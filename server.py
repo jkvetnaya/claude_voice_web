@@ -43,7 +43,7 @@ from flask_cors import CORS
 
 # Configuration
 HISTORY_FILE = Path(__file__).parent / "conversation_history.json"
-MAX_HISTORY_MESSAGES = 100  # Increased from 20 to 100 messages per session
+MAX_HISTORY_MESSAGES = 20  # Increased from 20 to 100 messages per session
 
 # Check dependencies before importing
 def check_dependencies():
@@ -234,7 +234,7 @@ def chat():
         client = get_claude_client()
         response = client.messages.create(
             model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
-            max_tokens=2048,
+            max_tokens=8192,
             system="You are a helpful voice assistant. Keep your responses concise and conversational since they will be displayed to a user who just spoke to you. Be friendly, natural, and helpful. Use markdown formatting when appropriate for readability.",
             messages=history
         )
@@ -304,7 +304,7 @@ def chat_stream():
             # Stream the response
             with client.messages.stream(
                 model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
-                max_tokens=2048,
+                max_tokens=8192,
                 system="You are a helpful voice assistant. Keep your responses concise and conversational since they will be displayed to a user who just spoke to you. Be friendly, natural, and helpful. Use markdown formatting when appropriate for readability.",
                 messages=history
             ) as stream:
