@@ -8,11 +8,8 @@
 #   chmod +x setup.sh
 #   ./setup.sh
 #
-# After setup, activate the environment with:
-#   source venv/bin/activate
-#
-# Then run the server with:
-#   python server.py
+# After setup, run the server with:
+#   ./run.sh
 # ==============================================================================
 
 set -e  # Exit on error
@@ -57,10 +54,18 @@ echo "   - Flask (web server)"
 echo "   - flask-cors (cross-origin support)"
 echo "   - openai-whisper (speech recognition)"
 echo "   - anthropic (Claude API)"
-echo "   - soundfile (audio processing)"
+echo "   - python-dotenv (environment variables)"
 echo ""
 
-pip install flask flask-cors openai-whisper anthropic
+pip install -r requirements.txt
+
+# Create .env file if it doesn't exist
+if [ ! -f .env ]; then
+    echo ""
+    echo "📝 Creating .env file from template..."
+    cp .env.example .env
+    echo "⚠️  Please edit .env and add your ANTHROPIC_API_KEY"
+fi
 
 echo ""
 echo "=============================================="
@@ -69,15 +74,12 @@ echo "=============================================="
 echo ""
 echo "Next steps:"
 echo ""
-echo "  1. Set your Anthropic API key:"
-echo "     export ANTHROPIC_API_KEY='your-api-key-here'"
+echo "  1. Edit .env and add your Anthropic API key:"
+echo "     nano .env"
 echo ""
-echo "  2. Activate the virtual environment:"
-echo "     source venv/bin/activate"
+echo "  2. Run the server:"
+echo "     ./run.sh"
 echo ""
-echo "  3. Run the server:"
-echo "     python server.py"
-echo ""
-echo "  4. Open http://localhost:5000 in your browser"
+echo "  3. Open http://localhost:5000 in your browser"
 echo ""
 echo "=============================================="

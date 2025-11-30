@@ -3,9 +3,7 @@
 # Claude Voice Assistant - Run Script
 # ==============================================================================
 # This script activates the virtual environment and starts the server.
-#
-# Make sure to set your API key first:
-#   export ANTHROPIC_API_KEY='your-api-key-here'
+# API key is read from .env file automatically.
 #
 # Usage:
 #   chmod +x run.sh
@@ -24,16 +22,13 @@ if [ ! -d "venv" ]; then
     exit 1
 fi
 
-# Check for API key
-if [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo "⚠️  ANTHROPIC_API_KEY is not set."
-    echo ""
-    echo "Please set it with:"
-    echo "  export ANTHROPIC_API_KEY='your-api-key-here'"
-    echo ""
-    read -p "Or enter it now: " ANTHROPIC_API_KEY
-    export ANTHROPIC_API_KEY
-    echo ""
+# Check if .env exists
+if [ ! -f ".env" ]; then
+    echo "❌ .env file not found."
+    echo "Please create it from the example:"
+    echo "  cp .env.example .env"
+    echo "  nano .env"
+    exit 1
 fi
 
 # Activate virtual environment

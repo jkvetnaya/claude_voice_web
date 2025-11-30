@@ -3,9 +3,7 @@ REM ============================================================================
 REM Claude Voice Assistant - Run Script (Windows)
 REM ==============================================================================
 REM This script activates the virtual environment and starts the server.
-REM
-REM Make sure to set your API key first:
-REM   set ANTHROPIC_API_KEY=your-api-key-here
+REM API key is read from .env file automatically.
 REM ==============================================================================
 
 echo ==============================================
@@ -21,16 +19,14 @@ if not exist "venv\Scripts\activate.bat" (
     exit /b 1
 )
 
-REM Check for API key
-if "%ANTHROPIC_API_KEY%"=="" (
-    echo [WARNING] ANTHROPIC_API_KEY is not set.
-    echo.
-    echo Please set it with:
-    echo   set ANTHROPIC_API_KEY=your-api-key-here
-    echo.
-    echo Or enter it now:
-    set /p ANTHROPIC_API_KEY="API Key: "
-    echo.
+REM Check if .env exists
+if not exist ".env" (
+    echo [ERROR] .env file not found.
+    echo Please create it from the example:
+    echo   copy .env.example .env
+    echo   notepad .env
+    pause
+    exit /b 1
 )
 
 REM Activate virtual environment
