@@ -1002,13 +1002,28 @@
             // Links [text](url)
             processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
             
-            // Line breaks (but not inside pre/code blocks)
-            processed = processed.replace(/\n\n/g, '</p><p>');
+            // Clean up line breaks around block elements (don't add <br> after headers, lists, etc.)
+            processed = processed.replace(/(<\/h[123]>)\n/g, '$1');
+            processed = processed.replace(/(<\/li>)\n/g, '$1');
+            processed = processed.replace(/(<\/ul>)\n/g, '$1');
+            processed = processed.replace(/(<\/pre>)\n/g, '$1');
+            processed = processed.replace(/(<\/blockquote>)\n/g, '$1');
+            processed = processed.replace(/(<hr>)\n/g, '$1');
+            
+            // Paragraphs for double line breaks
+            processed = processed.replace(/\n\n+/g, '</p><p>');
+            
+            // Single line breaks become <br> only in regular text
             processed = processed.replace(/\n/g, '<br>');
             
-            // Clean up empty paragraphs
+            // Clean up empty paragraphs and extra breaks
             processed = processed.replace(/<p><\/p>/g, '');
             processed = processed.replace(/<p><br><\/p>/g, '');
+            processed = processed.replace(/<br><br>/g, '<br>');
+            processed = processed.replace(/(<\/h[123]>)<br>/g, '$1');
+            processed = processed.replace(/(<\/ul>)<br>/g, '$1');
+            processed = processed.replace(/(<\/pre>)<br>/g, '$1');
+            processed = processed.replace(/(<\/blockquote>)<br>/g, '$1');
             
             return processed;
         }
