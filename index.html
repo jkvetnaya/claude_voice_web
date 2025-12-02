@@ -417,9 +417,10 @@
         .message-content code {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85em;
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
             padding: 0.2em 0.4em;
             border-radius: 4px;
+            color: var(--accent);
         }
 
         .message-content pre {
@@ -434,6 +435,78 @@
         .message-content pre code {
             background: none;
             padding: 0;
+            color: var(--text-primary);
+        }
+
+        /* Markdown headers */
+        .message-content h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .message-content h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .message-content h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0.75rem 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        /* Lists */
+        .message-content ul,
+        .message-content ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .message-content li {
+            margin: 0.25rem 0;
+        }
+
+        /* Blockquote */
+        .message-content blockquote {
+            border-left: 3px solid var(--accent);
+            margin: 0.75rem 0;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0 4px 4px 0;
+            color: var(--text-secondary);
+        }
+
+        /* Horizontal rule */
+        .message-content hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1rem 0;
+        }
+
+        /* Links */
+        .message-content a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Strong/Bold */
+        .message-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Emphasis/Italic */
+        .message-content em {
+            font-style: italic;
         }
 
         /* Empty state */
@@ -887,36 +960,58 @@
                 .replace(/'/g, '&#039;');
         }
         
-        // Unescape HTML (for code that was pre-escaped)
-        function unescapeHtml(text) {
-            return text
-                .replace(/&amp;/g, '&')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#039;/g, "'");
-        }
-        
-        // Format content with markdown-like styling
+        // Format content with markdown styling
         function formatContent(content) {
             // FIRST: Escape ALL HTML to prevent any tag interpretation
             let processed = escapeHtml(content);
             
-            // Now handle code blocks (``` ... ```)
-            // The backticks are now safe text, not being interpreted as HTML
+            // Code blocks (``` ... ```)
             processed = processed.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre><code>${code}</code></pre>`;
+                return `<pre><code class="language-${lang}">${code}</code></pre>`;
             });
             
-            // Handle inline code (` ... `)
+            // Inline code (` ... `)
             processed = processed.replace(/`([^`]+)`/g, '<code>$1</code>');
             
-            // Handle bold (**text**)
-            processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            // Headers (must be at start of line)
+            processed = processed.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            processed = processed.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            processed = processed.replace(/^# (.+)$/gm, '<h1>$1</h1>');
             
-            // Handle line breaks
+            // Bold (**text** or __text__)
+            processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            processed = processed.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+            
+            // Italic (*text* or _text_)
+            processed = processed.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            processed = processed.replace(/_([^_]+)_/g, '<em>$1</em>');
+            
+            // Unordered lists (- item or * item)
+            processed = processed.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+            processed = processed.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+            
+            // Ordered lists (1. item)
+            processed = processed.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            
+            // Horizontal rule (--- or ***)
+            processed = processed.replace(/^[\-\*]{3,}$/gm, '<hr>');
+            
+            // Blockquote (&gt; text) - note: > is escaped as &gt;
+            processed = processed.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+            
+            // Links [text](url)
+            processed = processed.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            
+            // Line breaks (but not inside pre/code blocks)
             processed = processed.replace(/\n\n/g, '</p><p>');
             processed = processed.replace(/\n/g, '<br>');
+            
+            // Clean up empty paragraphs
+            processed = processed.replace(/<p><\/p>/g, '');
+            processed = processed.replace(/<p><br><\/p>/g, '');
+            
+            return processed;
+        }
             
             return processed;
         }
