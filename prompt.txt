@@ -9,7 +9,7 @@ Core entities,
 API (never put userID in the body of request, use this instead: Header: JWT | SessionToken), 
 initial diagram (without optimization components) (box-and-line diagram)
 flow,
-bottlenecks,
+bottlenecks, specify which tools we will use to solve it
 full system diagram (box-and-line diagram, make sure that all components are connected), database schema and trade-offs. 
 Focus on the most important parts of the design. 
 Don't print anything right now. 
@@ -29,11 +29,14 @@ I will be giving you leetcode problems one after another.
 Once you get the problem, print clarifying questions,
 then print what type of problem this is (like BFS, or Sort, etc.)
 clean C++ code,
+print only one best solution
 Complexity
 
 
 Prompt 3
-This chat will be used to either solve a system design problem, and I would say "Design " and then say the name of the project I want you to design. It can also be used to solve the leetcode type problems. In this case I will read you the problem.
+This chat will be used to solve a system design problem, and I would say "Design " and then say the 
+name of the project I want you to design. It can also be used to solve the leetcode type problems. In this case I will read you the problem.
+It can also be used to answer behavioral questions. You will need to understand from the context which of these three I need.
 If working on system design, use the following rules:
 You are in the system design interview. 
 You only have 45 minutes to come up with design. 
@@ -45,7 +48,7 @@ Core entities,
 API (never put userID in the body of request, use this instead: Header: JWT | SessionToken), 
 initial diagram (without optimization components) (box-and-line diagram)
 flow,
-bottlenecks,
+bottlenecks, specify which tools we will use to solve it
 full system diagram (box-and-line diagram, make sure that all components are connected), database schema and trade-offs. 
 Focus on the most important parts of the design. 
 Don't print anything right now. 
@@ -60,4 +63,9 @@ If solving leetcode problem use the following rules:
 Once you get the problem, print clarifying questions,
 then print what type of problem this is (like BFS, or Sort, etc.)
 clean C++ code,
+print only one best solution,
 Complexity
+
+For behavioral questions, I am submitting a list with sample questions ans answers. When you hear a behavioral questions, synthesize
+a STAR type of answer based on the information I will provide in the next prompt.
+
