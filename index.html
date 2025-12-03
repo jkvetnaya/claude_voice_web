@@ -1076,6 +1076,10 @@
             `;
             
             chatContainer.appendChild(message);
+            
+            // Scroll to show the start of the new message
+            message.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
             return message.querySelector('.message-content');
         }
         
@@ -1090,23 +1094,6 @@
             contentEl.innerHTML = formattedContent;
         }
         
-        // Check if content overflows the visible area
-        function isContentOverflowing(contentEl) {
-            const messageEl = contentEl.closest('.message');
-            const messageRect = messageEl.getBoundingClientRect();
-            const containerRect = chatContainer.getBoundingClientRect();
-            
-            // Check if the bottom of the message is below the visible area
-            return messageRect.bottom > containerRect.bottom + 50;
-        }
-        
-        // Check if user has scrolled to see more content
-        function hasUserScrolledToBottom() {
-            const scrollBottom = chatContainer.scrollTop + chatContainer.clientHeight;
-            const threshold = chatContainer.scrollHeight - 100;
-            return scrollBottom >= threshold;
-        }
-        
         // Send message with streaming response (pauses when screen is full)
         async function sendMessageWithStream(text) {
             // Add user message and scroll to it
@@ -1116,39 +1103,72 @@
             
             // Create empty message for streaming
             const contentEl = createStreamingMessage();
+            const messageEl = contentEl.closest('.message');
             let fullResponse = '';
             let isPaused = false;
             let pendingChunks = [];
+            let streamComplete = false;
+            let initialScreenFilled = false;
             
-            // Scroll handler to resume streaming when user scrolls
-            const scrollHandler = () => {
-                if (isPaused && hasUserScrolledToBottom()) {
-                    isPaused = false;
-                    processPendingChunks();
-                }
-            };
+            // Check if the message bottom is below the visible area
+            function isOverflowing() {
+                const messageRect = messageEl.getBoundingClientRect();
+                const containerRect = chatContainer.getBoundingClientRect();
+                return messageRect.bottom > containerRect.bottom + 20;
+            }
             
-            chatContainer.addEventListener('scroll', scrollHandler);
-            
-            // Process any pending chunks when user scrolls
+            // Process pending chunks
             function processPendingChunks() {
-                while (pendingChunks.length > 0 && !isPaused) {
+                if (pendingChunks.length === 0) {
+                    if (streamComplete) {
+                        setStatus('Ready');
+                    }
+                    return;
+                }
+                
+                while (pendingChunks.length > 0) {
                     const chunk = pendingChunks.shift();
                     fullResponse += chunk;
                     updateStreamingMessage(contentEl, fullResponse);
                     
                     // Check if we need to pause again
-                    if (pendingChunks.length > 0 && isContentOverflowing(contentEl)) {
+                    if (isOverflowing() && pendingChunks.length > 0) {
                         isPaused = true;
-                        setStatus('Scroll down for more...', 'processing');
-                        break;
+                        setStatus('↓ Scroll down for more...', 'processing');
+                        return;
                     }
                 }
                 
-                if (pendingChunks.length === 0 && !isPaused) {
+                if (streamComplete) {
                     setStatus('Ready');
                 }
             }
+            
+            // Scroll handler - using wheel event for better detection
+            const wheelHandler = (e) => {
+                if (isPaused && e.deltaY > 0) {
+                    // User scrolling down
+                    isPaused = false;
+                    setStatus('Claude is responding...', 'processing');
+                    setTimeout(processPendingChunks, 50);
+                }
+            };
+            
+            // Also listen for scroll event as backup
+            const scrollHandler = () => {
+                if (isPaused) {
+                    const scrollBottom = chatContainer.scrollTop + chatContainer.clientHeight;
+                    const nearBottom = scrollBottom >= chatContainer.scrollHeight - 150;
+                    if (nearBottom) {
+                        isPaused = false;
+                        setStatus('Claude is responding...', 'processing');
+                        setTimeout(processPendingChunks, 50);
+                    }
+                }
+            };
+            
+            chatContainer.addEventListener('wheel', wheelHandler);
+            chatContainer.addEventListener('scroll', scrollHandler);
             
             try {
                 const response = await fetch('/api/chat/stream', {
@@ -1163,14 +1183,10 @@
                 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let streamDone = false;
                 
-                while (!streamDone) {
+                while (true) {
                     const { done, value } = await reader.read();
-                    if (done) {
-                        streamDone = true;
-                        break;
-                    }
+                    if (done) break;
                     
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
@@ -1188,18 +1204,17 @@
                                         fullResponse += data.chunk;
                                         updateStreamingMessage(contentEl, fullResponse);
                                         
-                                        // Check if we should pause
-                                        if (isContentOverflowing(contentEl)) {
+                                        // After first screen is filled, start pausing
+                                        if (!initialScreenFilled && isOverflowing()) {
+                                            initialScreenFilled = true;
                                             isPaused = true;
-                                            setStatus('Scroll down for more...', 'processing');
+                                            setStatus('↓ Scroll down for more...', 'processing');
                                         }
                                     }
                                 }
                                 
                                 if (data.done) {
-                                    if (pendingChunks.length === 0) {
-                                        setStatus('Ready');
-                                    }
+                                    streamComplete = true;
                                 }
                                 
                                 if (data.error) {
@@ -1212,21 +1227,34 @@
                     }
                 }
                 
-                // Process any remaining chunks
-                if (pendingChunks.length > 0 && !isPaused) {
+                streamComplete = true;
+                
+                // Process any remaining chunks if not paused
+                if (!isPaused && pendingChunks.length > 0) {
                     processPendingChunks();
+                } else if (!isPaused) {
+                    setStatus('Ready');
                 }
                 
-                // Clean up scroll handler after a delay
-                setTimeout(() => {
-                    chatContainer.removeEventListener('scroll', scrollHandler);
-                    if (pendingChunks.length === 0) {
-                        setStatus('Ready');
+                // Clean up event listeners after everything is done
+                const cleanup = () => {
+                    if (pendingChunks.length === 0 && streamComplete) {
+                        chatContainer.removeEventListener('wheel', wheelHandler);
+                        chatContainer.removeEventListener('scroll', scrollHandler);
                     }
-                }, 100);
+                };
+                
+                // Check periodically if we can clean up
+                const cleanupInterval = setInterval(() => {
+                    if (pendingChunks.length === 0 && streamComplete && !isPaused) {
+                        cleanup();
+                        clearInterval(cleanupInterval);
+                    }
+                }, 500);
                 
             } catch (err) {
                 console.error('Error sending message:', err);
+                chatContainer.removeEventListener('wheel', wheelHandler);
                 chatContainer.removeEventListener('scroll', scrollHandler);
                 setStatus('Ready');
                 showToast('Something went wrong. Please try again.', true);
