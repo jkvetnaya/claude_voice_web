@@ -15,7 +15,7 @@ Setup:
     2. Run the server:
        python server.py
     
-    3. Open http://localhost:5000 in your browser
+    3. Open http://localhost:5001 in your browser
 
 The server handles:
     - Receiving audio recordings from the browser
@@ -422,10 +422,10 @@ if __name__ == '__main__':
     print(f"Whisper model: {os.environ.get('WHISPER_MODEL', 'base')}")
     print(f"Claude model: {os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929')}")
     print("=" * 60)
-    print("\nStarting server at http://localhost:5000")
+    print("\nStarting server at http://localhost:5001")
     print("Press Ctrl+C to stop\n")
     
     # Pre-load Whisper model
     get_whisper_model()
     
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5001, debug=False)
