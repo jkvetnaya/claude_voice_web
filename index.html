@@ -1122,9 +1122,13 @@
                 if (pendingChunks.length === 0) {
                     if (streamComplete) {
                         setStatus('Ready');
+                        doCleanup();
                     }
                     return;
                 }
+                
+                // Auto-scroll down to make room for new content
+                chatContainer.scrollTop = chatContainer.scrollHeight;
                 
                 while (pendingChunks.length > 0) {
                     const chunk = pendingChunks.shift();
@@ -1139,9 +1143,20 @@
                     }
                 }
                 
+                // Finished all pending chunks
+                isPaused = false;
                 if (streamComplete) {
                     setStatus('Ready');
+                    doCleanup();
+                } else {
+                    setStatus('Claude is responding...', 'processing');
                 }
+            }
+            
+            // Cleanup function
+            function doCleanup() {
+                chatContainer.removeEventListener('wheel', wheelHandler);
+                chatContainer.removeEventListener('scroll', scrollHandler);
             }
             
             // Scroll handler - using wheel event for better detection
@@ -1229,33 +1244,20 @@
                 
                 streamComplete = true;
                 
-                // Process any remaining chunks if not paused
-                if (!isPaused && pendingChunks.length > 0) {
-                    processPendingChunks();
+                // Process any remaining chunks
+                if (pendingChunks.length > 0) {
+                    if (!isPaused) {
+                        processPendingChunks();
+                    }
+                    // If paused, scroll will trigger processPendingChunks via handlers
                 } else if (!isPaused) {
                     setStatus('Ready');
+                    doCleanup();
                 }
-                
-                // Clean up event listeners after everything is done
-                const cleanup = () => {
-                    if (pendingChunks.length === 0 && streamComplete) {
-                        chatContainer.removeEventListener('wheel', wheelHandler);
-                        chatContainer.removeEventListener('scroll', scrollHandler);
-                    }
-                };
-                
-                // Check periodically if we can clean up
-                const cleanupInterval = setInterval(() => {
-                    if (pendingChunks.length === 0 && streamComplete && !isPaused) {
-                        cleanup();
-                        clearInterval(cleanupInterval);
-                    }
-                }, 500);
                 
             } catch (err) {
                 console.error('Error sending message:', err);
-                chatContainer.removeEventListener('wheel', wheelHandler);
-                chatContainer.removeEventListener('scroll', scrollHandler);
+                doCleanup();
                 setStatus('Ready');
                 showToast('Something went wrong. Please try again.', true);
                 contentEl.innerHTML = '<p><em>Error: Could not get response</em></p>';
