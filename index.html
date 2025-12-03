@@ -1120,31 +1120,93 @@
             // Process pending chunks
             function processPendingChunks() {
                 if (pendingChunks.length === 0) {
+                    isPaused = false;
                     if (streamComplete) {
                         setStatus('Ready');
                         doCleanup();
+                        removeShowAllButton();
                     }
                     return;
                 }
                 
-                // Auto-scroll down to make room for new content
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                // Remember the initial scroll position
+                const startScrollHeight = chatContainer.scrollHeight;
+                const viewportHeight = chatContainer.clientHeight;
                 
+                // Keep adding chunks until we've added roughly a screenful
                 while (pendingChunks.length > 0) {
                     const chunk = pendingChunks.shift();
                     fullResponse += chunk;
                     updateStreamingMessage(contentEl, fullResponse);
                     
-                    // Check if we need to pause again
-                    if (isOverflowing() && pendingChunks.length > 0) {
+                    // Check if we've added enough content (about half a screen)
+                    const addedHeight = chatContainer.scrollHeight - startScrollHeight;
+                    if (addedHeight > viewportHeight * 0.5 && pendingChunks.length > 0) {
                         isPaused = true;
-                        setStatus('↓ Scroll down for more...', 'processing');
+                        setStatus('↓ Scroll down for more... (' + pendingChunks.length + ' chunks remaining)', 'processing');
+                        showShowAllButton();
                         return;
                     }
                 }
                 
                 // Finished all pending chunks
                 isPaused = false;
+                removeShowAllButton();
+                if (streamComplete) {
+                    setStatus('Ready');
+                    doCleanup();
+                } else {
+                    setStatus('Claude is responding...', 'processing');
+                }
+            }
+            
+            // Show All button
+            let showAllBtn = null;
+            
+            function showShowAllButton() {
+                if (showAllBtn) return;
+                showAllBtn = document.createElement('button');
+                showAllBtn.textContent = 'Show All';
+                showAllBtn.style.cssText = `
+                    position: fixed;
+                    bottom: 120px;
+                    right: 30px;
+                    padding: 10px 20px;
+                    background: var(--accent);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    font-size: 14px;
+                    font-weight: 500;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                `;
+                showAllBtn.onclick = () => {
+                    showAllRemaining();
+                };
+                document.body.appendChild(showAllBtn);
+            }
+            
+            function removeShowAllButton() {
+                if (showAllBtn) {
+                    showAllBtn.remove();
+                    showAllBtn = null;
+                }
+            }
+            
+            function showAllRemaining() {
+                isPaused = false;
+                removeShowAllButton();
+                
+                // Process all remaining chunks at once
+                while (pendingChunks.length > 0) {
+                    const chunk = pendingChunks.shift();
+                    fullResponse += chunk;
+                }
+                updateStreamingMessage(contentEl, fullResponse);
+                
                 if (streamComplete) {
                     setStatus('Ready');
                     doCleanup();
@@ -1157,15 +1219,17 @@
             function doCleanup() {
                 chatContainer.removeEventListener('wheel', wheelHandler);
                 chatContainer.removeEventListener('scroll', scrollHandler);
+                removeShowAllButton();
             }
             
             // Scroll handler - using wheel event for better detection
             const wheelHandler = (e) => {
                 if (isPaused && e.deltaY > 0) {
-                    // User scrolling down
+                    // User scrolling down - scroll to bottom first
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                     isPaused = false;
-                    setStatus('Claude is responding...', 'processing');
-                    setTimeout(processPendingChunks, 50);
+                    setStatus('Loading more...', 'processing');
+                    setTimeout(processPendingChunks, 100);
                 }
             };
             
@@ -1173,11 +1237,11 @@
             const scrollHandler = () => {
                 if (isPaused) {
                     const scrollBottom = chatContainer.scrollTop + chatContainer.clientHeight;
-                    const nearBottom = scrollBottom >= chatContainer.scrollHeight - 150;
+                    const nearBottom = scrollBottom >= chatContainer.scrollHeight - 100;
                     if (nearBottom) {
                         isPaused = false;
-                        setStatus('Claude is responding...', 'processing');
-                        setTimeout(processPendingChunks, 50);
+                        setStatus('Loading more...', 'processing');
+                        setTimeout(processPendingChunks, 100);
                     }
                 }
             };
