@@ -1090,7 +1090,24 @@
             contentEl.innerHTML = formattedContent;
         }
         
-        // Send message with streaming response
+        // Check if content overflows the visible area
+        function isContentOverflowing(contentEl) {
+            const messageEl = contentEl.closest('.message');
+            const messageRect = messageEl.getBoundingClientRect();
+            const containerRect = chatContainer.getBoundingClientRect();
+            
+            // Check if the bottom of the message is below the visible area
+            return messageRect.bottom > containerRect.bottom + 50;
+        }
+        
+        // Check if user has scrolled to see more content
+        function hasUserScrolledToBottom() {
+            const scrollBottom = chatContainer.scrollTop + chatContainer.clientHeight;
+            const threshold = chatContainer.scrollHeight - 100;
+            return scrollBottom >= threshold;
+        }
+        
+        // Send message with streaming response (pauses when screen is full)
         async function sendMessageWithStream(text) {
             // Add user message and scroll to it
             addMessage(text, true, true);
@@ -1100,6 +1117,38 @@
             // Create empty message for streaming
             const contentEl = createStreamingMessage();
             let fullResponse = '';
+            let isPaused = false;
+            let pendingChunks = [];
+            
+            // Scroll handler to resume streaming when user scrolls
+            const scrollHandler = () => {
+                if (isPaused && hasUserScrolledToBottom()) {
+                    isPaused = false;
+                    processPendingChunks();
+                }
+            };
+            
+            chatContainer.addEventListener('scroll', scrollHandler);
+            
+            // Process any pending chunks when user scrolls
+            function processPendingChunks() {
+                while (pendingChunks.length > 0 && !isPaused) {
+                    const chunk = pendingChunks.shift();
+                    fullResponse += chunk;
+                    updateStreamingMessage(contentEl, fullResponse);
+                    
+                    // Check if we need to pause again
+                    if (pendingChunks.length > 0 && isContentOverflowing(contentEl)) {
+                        isPaused = true;
+                        setStatus('Scroll down for more...', 'processing');
+                        break;
+                    }
+                }
+                
+                if (pendingChunks.length === 0 && !isPaused) {
+                    setStatus('Ready');
+                }
+            }
             
             try {
                 const response = await fetch('/api/chat/stream', {
@@ -1114,10 +1163,14 @@
                 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
+                let streamDone = false;
                 
-                while (true) {
+                while (!streamDone) {
                     const { done, value } = await reader.read();
-                    if (done) break;
+                    if (done) {
+                        streamDone = true;
+                        break;
+                    }
                     
                     const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
@@ -1128,12 +1181,25 @@
                                 const data = JSON.parse(line.slice(6));
                                 
                                 if (data.chunk) {
-                                    fullResponse += data.chunk;
-                                    updateStreamingMessage(contentEl, fullResponse);
+                                    if (isPaused) {
+                                        // Queue chunks while paused
+                                        pendingChunks.push(data.chunk);
+                                    } else {
+                                        fullResponse += data.chunk;
+                                        updateStreamingMessage(contentEl, fullResponse);
+                                        
+                                        // Check if we should pause
+                                        if (isContentOverflowing(contentEl)) {
+                                            isPaused = true;
+                                            setStatus('Scroll down for more...', 'processing');
+                                        }
+                                    }
                                 }
                                 
                                 if (data.done) {
-                                    setStatus('Ready');
+                                    if (pendingChunks.length === 0) {
+                                        setStatus('Ready');
+                                    }
                                 }
                                 
                                 if (data.error) {
@@ -1146,10 +1212,22 @@
                     }
                 }
                 
-                setStatus('Ready');
+                // Process any remaining chunks
+                if (pendingChunks.length > 0 && !isPaused) {
+                    processPendingChunks();
+                }
+                
+                // Clean up scroll handler after a delay
+                setTimeout(() => {
+                    chatContainer.removeEventListener('scroll', scrollHandler);
+                    if (pendingChunks.length === 0) {
+                        setStatus('Ready');
+                    }
+                }, 100);
                 
             } catch (err) {
                 console.error('Error sending message:', err);
+                chatContainer.removeEventListener('scroll', scrollHandler);
                 setStatus('Ready');
                 showToast('Something went wrong. Please try again.', true);
                 contentEl.innerHTML = '<p><em>Error: Could not get response</em></p>';
